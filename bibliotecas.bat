@@ -6,3 +6,4 @@ pip install streamlit-tags=1.2.8
 pip install ta==0.10.2
 pip install mplfinance==0.12.9b7
 pip install sklearn==0.0.post5
+pip install scikit-learn==1.3.0
