@@ -85,11 +85,11 @@ def processaDados(simulacao):
 
         retEstrategia = {}        
         for nomeEst, dadosEst in infoTecnicas.items():
-            print(f"""
-                'Info ativo': {infoAtivo},
-                'Info técnica': {dadosEst},
-                'Info backtest': {infoBacktest} 
-            """)            
+            # print(f"""
+            #     'Info ativo': {infoAtivo},
+            #     'Info técnica': {dadosEst},
+            #     'Info backtest': {infoBacktest} 
+            # """)            
             retEstrategia[nomeEst] = be.TradingComMachineLearning(infoAtivo, dadosEst, infoBacktest)
         
         retornoGeral[acao] = retEstrategia
@@ -130,9 +130,9 @@ def checaErros(simulacao):
         erros += 1
         st.error("Escolha pelo menos um ativo!!\n\nCheque se está 'vermelho' no campo")
     
-    print(simulacao['fim'])
-    print(simulacao['inicio'])
-    print((simulacao['fim'] - simulacao['inicio']))
+    # print(simulacao['fim'])
+    # print(simulacao['inicio'])
+    # print((simulacao['fim'] - simulacao['inicio']))
     if simulacao['fim'] >= date.today():
         erros += 1
         st.error(f"Escolha no máximo até o último dia útil")
@@ -302,7 +302,7 @@ with guias[1]:
     if resultadoEstrategia != False:
         mostraResultadosGrid(resultadoEstrategia)
 
-print(f"\n\n\nATUALIZEI A PAGINA")
+#print(f"\n\n\nATUALIZEI A PAGINA")
 #print(memoria)
 #print(f"indicadores = {indicadores}")
         
