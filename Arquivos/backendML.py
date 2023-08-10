@@ -175,6 +175,20 @@ def indicadoresTecnicos(df, listaMM, indicadores):
     if 'Williams Range' in indicadores:
         df['WR'] = ta.momentum.williams_r(high = df['High'], low = df['Low'], close = df['Close'], fillna = True)
     
+    # Bollinger Bands
+    if 'Bollinger Bands' in indicadores:
+        indicator_bb = ta.volatility.BollingerBands(close=df["Close"], window=20, window_dev=2)
+
+        # Add Bollinger Bands features
+        df['bb_bbm'] = indicator_bb.bollinger_mavg()
+        df['bb_bbh'] = indicator_bb.bollinger_hband()
+        df['bb_bbl'] = indicator_bb.bollinger_lband()
+                # Add Bollinger Band high indicator
+        df['bb_bbhi'] = indicator_bb.bollinger_hband_indicator()
+
+        # Add Bollinger Band low indicator
+        df['bb_bbli'] = indicator_bb.bollinger_lband_indicator()
+
 #     df = ta.add_all_ta_features(
 #         df, open="Open", high="High", low="Low", close="Close", volume="Volume", fillna=True)
 
@@ -252,24 +266,25 @@ def ajustaSinaisDF(df, dados, clf):
 
 def TradingComMachineLearning(infoAtivo, infoTecnica, infoBacktest):
     # try:
-    df = yfin.download(infoAtivo['ativo'], infoAtivo['inicio'], infoAtivo['fim'], interval = infoAtivo['intervalo'])
-    df = indicadoresTecnicos(df, infoTecnica['indicadores']['listaMedias'], infoTecnica['indicadores']['indicadores'])
-    df = tratandoDF(df)
-    X, Y = matrizEntradaSaida(df)
-    dados = organizaTesteTreino(X, Y, infoTecnica['pesoTeste'])
-    resClassif = classificador(infoTecnica['algoritmoClassificador'], dados)
-    dfComSinais = ajustaSinaisDF(df, dados, resClassif)
-    backtest = backtestEstrategia(dfComSinais, infoBacktest['equity'], infoBacktest['takeProfit'], infoBacktest['stopLoss'])
-    saida = {
-        'Estrategia': infoTecnica['estrategia'],
-        'Informacoes': df,
-        'Sinais': dfComSinais,
-        'Backtest': backtest,
-        'DesempenhoClassificador': resClassif,
-        'Dados': dados,
-        'Algoritmo': infoTecnica['algoritmoClassificador']
-    }
-    return saida
+    try:
+        df = yfin.download(infoAtivo['ativo'], infoAtivo['inicio'], infoAtivo['fim'], interval = infoAtivo['intervalo'])
+        df = indicadoresTecnicos(df, infoTecnica['indicadores']['listaMedias'], infoTecnica['indicadores']['indicadores'])
+        df = tratandoDF(df)
+        X, Y = matrizEntradaSaida(df)
+        dados = organizaTesteTreino(X, Y, infoTecnica['pesoTeste'])
+        resClassif = classificador(infoTecnica['algoritmoClassificador'], dados)
+        dfComSinais = ajustaSinaisDF(df, dados, resClassif)
+        backtest = backtestEstrategia(dfComSinais, infoBacktest['equity'], infoBacktest['takeProfit'], infoBacktest['stopLoss'])
+        saida = {
+            'Estrategia': infoTecnica['estrategia'],
+            'Informacoes': df,
+            'Sinais': dfComSinais,
+            'Backtest': backtest,
+            'DesempenhoClassificador': resClassif,
+            'Dados': dados,
+            'Algoritmo': infoTecnica['algoritmoClassificador']
+        }
+        return saida
     
-    # except:
-    #     return 'erro'
+    except:
+        return False

@@ -6,6 +6,8 @@ import streamlit_nested_layout
 import random
 import string
 import os
+from datetime import date
+from datetime import timedelta
 import backendML as be
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
@@ -28,24 +30,7 @@ if 'simulacaoBotao' not in memoria:
     memoria.simulacaoBotao = False
 
 # Interativo
-def processaDados(simulacao):
-    def trataIndicadores(simulacao):        
-        for ind in memoria.indices:
-            listaMedias = memoria[f"valor_{ind}"] if 'Médias Móveis' in memoria[f"tipo_{ind}"]  else []
-            indicadores = memoria[f"tipo_{ind}"]
-        
-        
-        
-        if 'Médias Móveis' in memoria[f"tipo_{ind}"] and len(listaMedias) == 0:
-            st.warning("**Adicione pelo menos uma média!!**")
-
-
-
-        return {
-            'indicadores': indicadores,
-            'listaMedias': listaMedias
-        }
-
+def processaDados(simulacao):   
     def trataAlgoritmo(simulacao):
         infoAlgoritmos = {}
         infoTecnica = {}
@@ -84,7 +69,7 @@ def processaDados(simulacao):
         print('-')
         retornoGeral[acao] = {}
         infoAtivo = {
-            'ativo': acao,
+            'ativo': acao.upper(),
             'inicio': simulacao['inicio'],
             'fim': simulacao['fim'],
             'intervalo': '1d'
@@ -122,6 +107,65 @@ def espacoVertical(n):
     for i in range(n):
         st.markdown('')
 
+def trataIndicadores(simulacao):        
+    for ind in memoria.indices:
+        listaMedias = memoria[f"valor_{ind}"] if 'Médias Móveis' in memoria[f"tipo_{ind}"]  else []
+        indicadores = memoria[f"tipo_{ind}"]
+    
+    
+    
+    if 'Médias Móveis' in memoria[f"tipo_{ind}"] and len(listaMedias) == 0:
+        st.warning("**Adicione pelo menos uma média!!**")
+
+
+
+    return {
+        'indicadores': indicadores,
+        'listaMedias': listaMedias
+    }
+
+def checaErros(simulacao):
+    erros = 0
+    if len(simulacao['tickers']) < 1:
+        erros += 1
+        st.error("Escolha pelo menos um ativo!!\n\nCheque se está 'vermelho' no campo")
+    
+    print(simulacao['fim'])
+    print(simulacao['inicio'])
+    print((simulacao['fim'] - simulacao['inicio']))
+    if simulacao['fim'] >= date.today():
+        erros += 1
+        st.error(f"Escolha no máximo até o último dia útil")
+    
+    if simulacao['inicio'] >= date.today():
+        erros += 1
+        st.error(f"Escolha no máximo até o último dia útil")
+
+    if simulacao['inicio'] >= simulacao['fim']:
+        erros += 1
+        st.error(f"Data inválida")
+
+    if (simulacao['fim'] - simulacao['inicio']).days < 30:
+        erros += 1
+        st.error(f"Escolha um intervalo de pelo menos um mês")
+    
+    try:
+        indicadores = trataIndicadores(simulacao)
+        if len(indicadores['indicadores']) < 1:
+            erros += 1
+            st.error(f"Escolha pelo menos um indicador")
+        
+        if 'Médias Móveis' in indicadores['indicadores'] and len(indicadores['listaMedias']) < 1:
+            erros += 1
+            st.error(f"Adicione pelo menos uma média")
+    except:
+        erros += 1
+        st.error(f"Checar indicadores")
+    
+    return erros
+
+
+
 # Layout
 def ativosGrid():
     st.markdown('<h4>Ativos</h4>', unsafe_allow_html = True)
@@ -134,7 +178,8 @@ def ativosGrid():
     #simulacao['tickers'] = [tick.upper() for tick in simulacao['tickers']]
 
     colunas = st.columns(2)
-
+    dataMax = date.today()
+    dataMax = dataMax - timedelta(days=1)
     with colunas[0]:
         simulacao['inicio'] = st.date_input('Ínicio :calendar:', key = 'inicio')
 
@@ -210,13 +255,17 @@ def mostraResultadosGrid(resultado):
     if len(resultado) > 0:
         for acao, dados in resultado.items():
             with st.expander(f"{acao} :briefcase:"):
-                equityEstrategia = pd.DataFrame()
-                for estrategia, resultadoEstrategia in dados.items(): 
+                equityEstrategia = pd.DataFrame()                
+                for estrategia, resultadoEstrategia in dados.items():                    
+                    equity = resultadoEstrategia['Backtest']['Equity'].iloc[0]
+                    equityEstrategia['Base'] = resultadoEstrategia['Backtest']['Close']                    
+                    equityEstrategia['Base'] = (equity/equityEstrategia['Base'][0])*equityEstrategia['Base']                    
+                    #st.write(equityEstrategia)
                     with st.expander(f"{estrategia} :chart_with_upwards_trend:"):                       
                         equityEstrategia[estrategia] = resultadoEstrategia['Backtest']['Equity']
-                        st.line_chart(equityEstrategia[estrategia])
+                        st.line_chart(equityEstrategia[['Base', estrategia]])
                     
-                st.write("Comparação estratégias")
+                st.subheader("Comparação estratégias")
                 st.line_chart(equityEstrategia)
     else:
         st.warning("Realize a simulação!")
@@ -244,10 +293,14 @@ with guias[0]:
         backtestGrid()
     
     if st.button("**Simular Estratégia** :rocket:"):
-        resultadoEstrategia = processaDados(simulacao)
+        if checaErros(simulacao) < 1:            
+            resultadoEstrategia = processaDados(simulacao)
+            if resultadoEstrategia == False:
+                st.error("Não foi possível realizar a simulação\n\nCheque as informações dos ativos")
 
 with guias[1]:
-    mostraResultadosGrid(resultadoEstrategia)
+    if resultadoEstrategia != False:
+        mostraResultadosGrid(resultadoEstrategia)
 
 print(f"\n\n\nATUALIZEI A PAGINA")
 #print(memoria)
